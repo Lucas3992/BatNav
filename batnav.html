@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bataille Navale</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            grid-gap: 2px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ccc;
+            background-color: #add8e6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .cell.hit {
+            background-color: #ff4500;
+        }
+        .cell.miss {
+            background-color: #1e90ff;
+        }
+        .cell.disabled {
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bataille Navale</h1>
+    <div id="grid" class="grid"></div>
+    <p id="status">Cliquez sur une case pour tirer.</p>
+    <button id="restart">Rejouer</button>
+
+    <script>
+        const gridSize = 10;
+        const boatSizes = [4, 3, 2];
+        let grid = [];
+        let hiddenGrid = [];
+        let turns = 0;
+
+        function createGrid() {
+            return Array.from({ length: gridSize }, () => Array(gridSize).fill("."));
+        }
+
+        function placeBoat(grid, size) {
+            let placed = false;
+            while (!placed) {
+                const orientation = Math.random() < 0.5 ? "H" : "V";
+                const row = Math.floor(Math.random() * (orientation === "H" ? gridSize : gridSize - size));
+                const col = Math.floor(Math.random() * (orientation === "H" ? gridSize - size : gridSize));
+
+                let canPlace = true;
+                for (let i = 0; i < size; i++) {
+                    if (orientation === "H" && grid[row][col + i] !== ".") canPlace = false;
+                    if (orientation === "V" && grid[row + i][col] !== ".") canPlace = false;
+                }
+
+                if (canPlace) {
+                    for (let i = 0; i < size; i++) {
+                        if (orientation === "H") grid[row][col + i] = "B";
+                        if (orientation === "V") grid[row + i][col] = "B";
+                    }
+                    placed = true;
+                }
+            }
+        }
+
+        function setupGame() {
+            grid = createGrid();
+            hiddenGrid = createGrid();
+            turns = 0;
+            document.getElementById("status").textContent = "Cliquez sur une case pour tirer.";
+
+            // Place boats on hidden grid
+            boatSizes.forEach(size => placeBoat(hiddenGrid, size));
+
+            // Render the grid
+            const gridElement = document.getElementById("grid");
+            gridElement.innerHTML = "";
+
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener("click", () => handleCellClick(row, col, cell));
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(row, col, cell) {
+            turns++;
+            if (hiddenGrid[row][col] === "B") {
+                hiddenGrid[row][col] = "X";
+                cell.classList.add("hit", "disabled");
+                cell.textContent = "X";
+                checkWin();
+            } else {
+                hiddenGrid[row][col] = "nul";
+                cell.classList.add("miss", "disabled");
+                cell.textContent = "nul";
+            }
+        }
+
+        function checkWin() {
+            if (!hiddenGrid.flat().includes("B")) {
+                document.getElementById("status").textContent = `Bravo ! Vous avez coulé tous les bateaux en ${turns} coups !`;
+                document.querySelectorAll(".cell").forEach(cell => cell.classList.add("disabled"));
+            }
+        }
+
+        document.getElementById("restart").addEventListener("click", setupGame);
+
+        setupGame();
+    </script>
+</body>
+</html>
